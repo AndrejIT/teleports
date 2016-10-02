@@ -40,6 +40,63 @@ function teleports:find_nearby(pos, count)
     end
     return nearby
 end
+function teleports.animate(pos, playername)
+    minetest.add_particlespawner({
+    	amount = 80,
+    	time = 5,
+    	minpos = {x=pos.x-1, y=pos.y, z=pos.z-1},
+    	maxpos = {x=pos.x+1, y=pos.y+3, z=pos.z+1},
+    	minvel = {x=0, y=-1, z=0},
+    	maxvel = {x=0, y=1, z=0},
+    	minacc = {x=0, y=-1, z=0},
+    	maxacc = {x=0, y=1, z=0},
+    	minexptime = 1,
+    	maxexptime = 1,
+    	minsize = 0.5,
+    	maxsize = 2,
+    	collisiondetection = false,
+    	vertical = true,
+    	texture = "default_diamond.png",
+    	playername = playername,
+    })
+    minetest.add_particlespawner({
+    	amount = 20,
+    	time = 5,
+    	minpos = {x=pos.x-1, y=pos.y, z=pos.z-1},
+    	maxpos = {x=pos.x+1, y=pos.y+3, z=pos.z+1},
+    	minvel = {x=0, y=-1, z=0},
+    	maxvel = {x=0, y=1, z=0},
+    	minacc = {x=0, y=-1, z=0},
+    	maxacc = {x=0, y=1, z=0},
+    	minexptime = 1,
+    	maxexptime = 1,
+    	minsize = 0.5,
+    	maxsize = 2,
+    	collisiondetection = false,
+    	vertical = true,
+    	texture = "default_diamond.png",
+    })
+end
+function teleports.teleportate(parameters)
+    local pos1,pos2,playername = parameters[1],parameters[2],parameters[3]
+
+    local player = minetest.get_player_by_name(playername)
+    if player:is_player() and playername~=teleports.lastplayername then
+        local pos = player:getpos()
+        if vector.distance(pos, {x=pos1.x,y=pos1.y+0.5,z=pos1.z}) < 0.52 then
+            if math.random(1, 100) > 5 then
+                teleports.lastplayername = playername
+                player:setpos({x=pos2.x,y=pos2.y+0.5,z=pos2.z})
+            else
+                player:setpos({x=pos2.x-5+math.random(1, 10),y=pos2.y+3,z=pos2.z-5+math.random(1, 10)})
+            end
+        end
+    end
+end
+function teleports.do_teleporting(pos1, pos2, playername)
+    teleports.animate(pos1, playername)
+    minetest.after(3.0, teleports.teleportate, {pos1, pos2, playername})
+end
 teleports.set_formspec = function(pos)
 	local meta = minetest.get_meta(pos)
 	local node = minetest.get_node(pos)
@@ -65,26 +122,22 @@ teleports.on_receive_fields = function(pos, formname, fields, player)
     if fields.tp1 or fields.tp2 or fields.tp3 or fields.tp4 or fields.tp5 or fields.tp6 then
         if inv:contains_item("price", price) then
             inv:remove_item("price", price);
+            teleports.lastplayername = ""
             local available = teleports:find_nearby(pos, 5)
             if player ~= nil and player:is_player() then
+                local playerpos = player:getpos()
                 if fields.tp1 and #available>0 then
-                    player:setpos({x=available[1].pos.x,y=available[1].pos.y+0.5,z=available[1].pos.z})
-                    teleports.lastplayername = player:get_player_name()
+                    teleports.do_teleporting(playerpos, available[1].pos, player:get_player_name())
                 elseif fields.tp2 and #available>1 then
-                    player:setpos({x=available[2].pos.x,y=available[2].pos.y+0.5,z=available[2].pos.z})
-                    teleports.lastplayername = player:get_player_name()
+                    teleports.do_teleporting(playerpos, available[2].pos, player:get_player_name())
                 elseif fields.tp3 and #available>2 then
-                    player:setpos({x=available[3].pos.x,y=available[3].pos.y+0.5,z=available[3].pos.z})
-                    teleports.lastplayername = player:get_player_name()
+                    teleports.do_teleporting(playerpos, available[3].pos, player:get_player_name())
                 elseif fields.tp4 and #available>3 then
-                    player:setpos({x=available[3].pos.x,y=available[3].pos.y+0.5,z=available[3].pos.z})
-                    teleports.lastplayername = player:get_player_name()
+                    teleports.do_teleporting(playerpos, available[4].pos, player:get_player_name())
                 elseif fields.tp5 and #available>4 then
-                    player:setpos({x=available[5].pos.x,y=available[5].pos.y+0.5,z=available[5].pos.z})
-                    teleports.lastplayername = player:get_player_name()
+                    teleports.do_teleporting(playerpos, available[5].pos, player:get_player_name())
                 elseif fields.tp6 and #available>5 then
-                    player:setpos({x=available[6].pos.x,y=available[6].pos.y+0.5,z=available[6].pos.z})
-                    teleports.lastplayername = player:get_player_name()
+                    teleports.do_teleporting(playerpos, available[6].pos, player:get_player_name())
                 end
             end
 
@@ -195,15 +248,10 @@ minetest.register_abm({
                     	dist = math.sqrt(dir.x*dir.x+dir.y*dir.y+dir.z*dir.z);
                     	if dist<distmin then distmin = dist; key = i end
                     end
-                    
+
                     local pos2 = positions[key].pos
-                    teleports.lastplayername = player:get_player_name()
-                    if math.random(1, 100) > 5 then
-                        player:setpos({x=pos2.x,y=pos2.y+0.5,z=pos2.z})
-                    else
-                        player:setpos({x=pos2.x-5+math.random(1, 10),y=pos2.y+3,z=pos2.z-5+math.random(1, 10)})
-                    end
-				end
+                    teleports.do_teleporting(pos, pos2, player:get_player_name())
+                end
             else
                 teleports.lastplayername = ""
 			end
