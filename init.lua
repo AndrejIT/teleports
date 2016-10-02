@@ -43,12 +43,12 @@ end
 teleports.set_formspec = function(pos)
 	local meta = minetest.get_meta(pos)
 	local node = minetest.get_node(pos)
-    
+
     local buttons = "";
     for i, EachTeleport in ipairs( teleports:find_nearby(pos, 5) ) do
         buttons = buttons.."button_exit[3,"..(i)..";2,0.5;tp"..i..";GO>"..EachTeleport.pos.x..","..EachTeleport.pos.y..","..EachTeleport.pos.z.."]";
     end
-    
+
 	meta:set_string("formspec", "size[8,10;]"
 		.."label[0,0;" .. 'Go to available teleports! Use mossy cobble as fuel!' .. "]"
         .."list[current_name;price;0,1;1,1;]"
@@ -87,7 +87,7 @@ teleports.on_receive_fields = function(pos, formname, fields, player)
                     teleports.lastplayername = player:get_player_name()
                 end
             end
-            
+
             teleports.set_formspec(pos)
         end
     end
@@ -184,6 +184,18 @@ minetest.register_abm({
 				local positions = teleports:find_nearby(pos, 10)
 				if #positions>0 then
 					local key = math.random(1, #positions)
+                    local dir, dirmag;
+                    local view = player:get_look_dir();
+                    local dist, distmin; distmin = 99;
+                    for i=1,#positions do -- find teleport closest to where player is looking
+                    	dir = {x=positions[i].pos.x-pos.x,y=positions[i].pos.y-pos.y,z=positions[i].pos.z-pos.z};
+                    	dirmag = math.sqrt(dir.x*dir.x+dir.y*dir.y+dir.z*dir.z); if dirmag == 0 then dirmag = 1 end
+                    	dir.x=dir.x/dirmag;dir.y=dir.y/dirmag;dir.z=dir.z/dirmag;
+                    	dir.x = view.x-dir.x;dir.y = view.y-dir.y;dir.z = view.z-dir.z;
+                    	dist = math.sqrt(dir.x*dir.x+dir.y*dir.y+dir.z*dir.z);
+                    	if dist<distmin then distmin = dist; key = i end
+                    end
+                    
                     local pos2 = positions[key].pos
                     teleports.lastplayername = player:get_player_name()
                     if math.random(1, 100) > 5 then
@@ -198,4 +210,3 @@ minetest.register_abm({
 		end
 	end,
 })
-
