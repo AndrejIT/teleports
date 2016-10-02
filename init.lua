@@ -103,7 +103,12 @@ teleports.set_formspec = function(pos)
 
     local buttons = "";
     for i, EachTeleport in ipairs( teleports:find_nearby(pos, 5) ) do
-        buttons = buttons.."button_exit[3,"..(i)..";2,0.5;tp"..i..";GO>"..EachTeleport.pos.x..","..EachTeleport.pos.y..","..EachTeleport.pos.z.."]";
+        if EachTeleport["name"] then
+            buttons = buttons.."button_exit[3,"..(i)..";4,0.5;tp"..i..";GO>"..minetest.formspec_escape(EachTeleport.name).."]";
+        else
+            buttons = buttons.."button_exit[3,"..(i)..";4,0.5;tp"..i..";GO>"..EachTeleport.pos.x..","..EachTeleport.pos.y..","..EachTeleport.pos.z.."]";
+        end
+
     end
 
 	meta:set_string("formspec", "size[8,10;]"
@@ -176,7 +181,15 @@ minetest.register_node("teleports:teleport", {
             local initialcharge = {name="default:mossycobble", count=30, wear=0, metadata=""}
             inv:add_item("price", initialcharge)
             teleports.set_formspec(pos)
-            table.insert(teleports.teleports, {pos=vector.round(pos)} )
+            local sign_pos = minetest.find_node_near(pos, 1, "default:sign_wall_wood")
+            if sign_pos then
+                local sign_meta = minetest.env:get_meta(sign_pos)
+                local sign_text = sign_meta:get_string("text")
+                local secret_name = sign_text:sub(0, 16)
+                table.insert(teleports.teleports, {pos=vector.round(pos), name=secret_name})
+            else
+                table.insert(teleports.teleports, {pos=vector.round(pos)})
+            end
             teleports:save()
         end
     end,
