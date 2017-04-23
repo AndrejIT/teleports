@@ -81,7 +81,7 @@ function teleports.teleportate(parameters)
     local pos1,pos2,playername = parameters[1],parameters[2],parameters[3]
 
     local player = minetest.get_player_by_name(playername)
-    if player:is_player() and playername~=teleports.lastplayername then
+    if player and player:is_player() and playername~=teleports.lastplayername then
         local pos = player:getpos()
         if vector.distance(pos, {x=pos1.x,y=pos1.y+0.5,z=pos1.z}) < 0.52 then
             if math.random(1, 100) > 5 then
