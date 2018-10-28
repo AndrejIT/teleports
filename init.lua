@@ -240,12 +240,16 @@ minetest.register_node(":default:diamondblock", {
 
 minetest.register_abm({
 	nodenames = {"teleports:teleport"},
-	interval = 10,
+	interval = 3,
 	chance = 1,
 	action = function(pos)
 		local objectsnear=minetest.get_objects_inside_radius({x=pos.x,y=pos.y+0.5,z=pos.z}, 0.52);
 		if #objectsnear>0 then
 			local player = objectsnear[1];
+            -- check only first two objekts then give up
+            if #objectsnear>1 and not player:is_player() then
+                player = objectsnear[2];
+            end
 			if player:is_player() and player:get_player_name()~=teleports.lastplayername then
 				local positions = teleports:find_nearby(pos, 10)
 				if #positions>0 then
